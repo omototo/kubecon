@@ -26,8 +26,8 @@ deepseekVllm:
 kokoroTts:
   enabled: true
   replicas: 1
-  # This will be replaced with your ECR image
-  image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/kokoro-tts:latest
+  # Using hardcoded ECR image URL
+  image: 240484791744.dkr.ecr.eu-central-1.amazonaws.com/kokoro-tts:latest
   modelId: "hexgrad/Kokoro-82M"
   langCode: "a"  # 'a' for American English
   resources:
