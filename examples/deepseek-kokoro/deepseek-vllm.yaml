@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepseek-vllm
+  namespace: inference
+  labels:
+    app: deepseek-vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deepseek-vllm
+  template:
+    metadata:
+      labels:
+        app: deepseek-vllm
+    spec:
+      containers:
+      - name: vllm
+        image: ghcr.io/vllm-project/vllm:latest
+        command: 
+        - /bin/bash
+        - -c
+        - "vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --max-model-len 2048"
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          limits:
+            cpu: "32"
+            memory: 100G
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "16"
+            memory: 30G
+            nvidia.com/gpu: "1"
+      nodeSelector:
+        nvidia.com/gpu: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepseek-vllm
+  namespace: inference
+spec:
+  selector:
+    app: deepseek-vllm
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  type: ClusterIP
