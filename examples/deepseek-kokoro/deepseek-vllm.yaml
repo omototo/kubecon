@@ -33,10 +33,9 @@ spec:
         resources:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
       tolerations:
-      - key: nvidia.com/gpu
-        operator: Equal
-        value: present
-        effect: NoSchedule
+        {{- toYaml .Values.deepseekVllm.tolerations | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.deepseekVllm.nodeSelector | nindent 8 }}
 ---
 apiVersion: v1
 kind: Service

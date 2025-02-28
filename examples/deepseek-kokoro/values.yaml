@@ -6,19 +6,23 @@ deepseekVllm:
   image: ghcr.io/vllm-project/vllm:latest
   resources:
     limits:
-      cpu: "32"
-      memory: 100G
+      cpu: "8"
+      memory: "32G"
       nvidia.com/gpu: "1"
     requests:
-      cpu: "16"
-      memory: 30G
+      cpu: "4"
+      memory: "16G"
       nvidia.com/gpu: "1"
   command: "vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --max-model-len 2048"
   tolerations:
     - key: nvidia.com/gpu
-      operator: Equal
-      value: present
+      operator: Exists
       effect: NoSchedule
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:
+    karpenter.sh/nodepool: gpu-nodepool
   service:
     type: ClusterIP
     port: 8000
