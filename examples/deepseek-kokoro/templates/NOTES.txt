@@ -4,7 +4,7 @@ The DeepSeek-Kokoro integration has been deployed to your cluster.
 
 Components deployed:
 {{- if .Values.deepseekVllm.enabled }}
-- DeepSeek VLLM Service (using {{ .Values.deepseekVllm.resources.limits.nvidia.com/gpu }} GPU)
+- DeepSeek VLLM Service (GPU-enabled)
 {{- end }}
 {{- if .Values.kokoroTts.enabled }}
 - Kokoro TTS Service
