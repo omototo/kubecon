@@ -36,7 +36,7 @@ spec:
         karpenter.sh/nodepool: gpu-nodepool
       tolerations:
       - key: nvidia.com/gpu
-        operator: Exists
+        value: present
         effect: NoSchedule
 ---
 apiVersion: v1
