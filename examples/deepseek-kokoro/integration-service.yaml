@@ -1,8 +1,13 @@
+{{- if .Values.integration.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: integration-code
-  namespace: inference
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: integration-service
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
 data:
   app.py: |
     import os
@@ -91,6 +96,7 @@ data:
 
   requirements.txt: |
     flask==2.0.1
+    werkzeug==2.0.3
     requests==2.28.1
     gunicorn==20.1.0
 ---
@@ -98,22 +104,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: integration-service
-  namespace: inference
+  namespace: {{ .Release.Namespace }}
   labels:
     app: integration-service
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.integration.replicas }}
   selector:
     matchLabels:
       app: integration-service
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: integration-service
+        release: {{ .Release.Name }}
     spec:
       containers:
       - name: integration
-        image: python:3.9-slim
+        image: {{ .Values.integration.image }}
         command: 
         - /bin/bash
         - -c
@@ -127,12 +137,7 @@ spec:
         - name: KOKORO_URL
           value: "http://kokoro-tts:8080/api/tts" 
         resources:
-          limits:
-            cpu: "1"
-            memory: 2G
-          requests:
-            cpu: "500m"
-            memory: 1G
+          {{- toYaml .Values.integration.resources | nindent 10 }}
         volumeMounts:
         - name: app-code
           mountPath: /app
@@ -145,12 +150,18 @@ apiVersion: v1
 kind: Service
 metadata:
   name: integration-service
-  namespace: inference
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: integration-service
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
 spec:
+  type: {{ .Values.integration.service.type }}
   selector:
     app: integration-service
+    release: {{ .Release.Name }}
   ports:
-  - port: 80
+  - port: {{ .Values.integration.service.port }}
     targetPort: 5000
     name: http
-  type: ClusterIP 
+{{- end }} 
