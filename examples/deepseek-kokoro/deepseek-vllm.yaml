@@ -32,10 +32,6 @@ spec:
           name: http
         resources:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
-      tolerations:
-      - key: nvidia.com/gpu
-        value: present
-        effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
