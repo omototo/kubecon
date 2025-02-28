@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kokoro-tts
+  namespace: inference
+  labels:
+    app: kokoro-tts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kokoro-tts
+  template:
+    metadata:
+      labels:
+        app: kokoro-tts
+    spec:
+      containers:
+      - name: tts
+        image: hexgrad/kokoro-tts:latest
+        env:
+        - name: MODEL_ID
+          value: "hexgrad/Kokoro-82M"
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            cpu: "4"
+            memory: 8G
+          requests:
+            cpu: "2"
+            memory: 4G
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kokoro-tts
+  namespace: inference
+spec:
+  selector:
+    app: kokoro-tts
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP 

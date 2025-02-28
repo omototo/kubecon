@@ -1,0 +1,53 @@
+{{- if .Values.kokoroTts.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kokoro-tts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kokoro-tts
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.kokoroTts.replicas }}
+  selector:
+    matchLabels:
+      app: kokoro-tts
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: kokoro-tts
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: tts
+        image: {{ .Values.kokoroTts.image }}
+        env:
+        - name: MODEL_ID
+          value: {{ .Values.kokoroTts.modelId | quote }}
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          {{- toYaml .Values.kokoroTts.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kokoro-tts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kokoro-tts
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+spec:
+  type: {{ .Values.kokoroTts.service.type }}
+  selector:
+    app: kokoro-tts
+    release: {{ .Release.Name }}
+  ports:
+  - port: {{ .Values.kokoroTts.service.port }}
+    targetPort: 8080
+    name: http
+{{- end }} 

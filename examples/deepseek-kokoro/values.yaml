@@ -1,0 +1,50 @@
+# Values file for DeepSeek-Kokoro integration
+
+deepseekVllm:
+  enabled: true
+  replicas: 1
+  image: ghcr.io/vllm-project/vllm:latest
+  resources:
+    limits:
+      cpu: "32"
+      memory: 100G
+      nvidia.com/gpu: "1"
+    requests:
+      cpu: "16"
+      memory: 30G
+      nvidia.com/gpu: "1"
+  command: "vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --max-model-len 2048"
+  service:
+    type: ClusterIP
+    port: 8000
+
+kokoroTts:
+  enabled: true
+  replicas: 1
+  image: hexgrad/kokoro-tts:latest
+  modelId: "hexgrad/Kokoro-82M"
+  resources:
+    limits:
+      cpu: "4"
+      memory: 8G
+    requests:
+      cpu: "2"
+      memory: 4G
+  service:
+    type: ClusterIP
+    port: 8080
+
+integration:
+  enabled: true
+  replicas: 1
+  image: python:3.9-slim
+  resources:
+    limits:
+      cpu: "1"
+      memory: 2G
+    requests:
+      cpu: "0.5"
+      memory: 1G
+  service:
+    type: ClusterIP
+    port: 80 

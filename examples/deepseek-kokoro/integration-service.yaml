@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: integration-code
+  namespace: inference
+data:
+  app.py: |
+    import os
+    import requests
+    from flask import Flask, request, jsonify, send_file
+    import tempfile
+    import uuid
+    import logging
+
+    app = Flask(__name__)
+    logging.basicConfig(level=logging.INFO)
+
+    DEEPSEEK_URL = os.environ.get("DEEPSEEK_URL", "http://deepseek-vllm:8000/v1/completions")
+    KOKORO_URL = os.environ.get("KOKORO_URL", "http://kokoro-tts:8080/api/tts")
+
+    @app.route("/api/chat", methods=["POST"])
+    def chat():
+        try:
+            data = request.json
+            user_input = data.get("input", "")
+            
+            if not user_input:
+                return jsonify({"error": "No input provided"}), 400
+                
+            # Call DeepSeek for text completion
+            logging.info(f"Sending request to DeepSeek: {user_input}")
+            
+            completion_response = requests.post(
+                DEEPSEEK_URL,
+                json={
+                    "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+                    "prompt": user_input,
+                    "max_tokens": 1000,
+                    "temperature": 0.7
+                }
+            )
+            
+            if completion_response.status_code != 200:
+                return jsonify({"error": f"DeepSeek API error: {completion_response.text}"}), 500
+                
+            completion_result = completion_response.json()
+            llm_response = completion_result["choices"][0]["text"]
+            
+            logging.info(f"DeepSeek response: {llm_response}")
+            
+            # Call Kokoro TTS to convert text to speech
+            logging.info("Sending text to Kokoro TTS")
+            
+            tts_response = requests.post(
+                KOKORO_URL,
+                json={
+                    "text": llm_response
+                }
+            )
+            
+            if tts_response.status_code != 200:
+                return jsonify({
+                    "error": f"TTS API error: {tts_response.text}",
+                    "text_response": llm_response
+                }), 500
+            
+            # Save audio to a temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+            temp_file.write(tts_response.content)
+            temp_file.close()
+            
+            # Return both text and audio file path
+            return jsonify({
+                "text": llm_response,
+                "audio_url": f"/api/audio/{os.path.basename(temp_file.name)}"
+            })
+            
+        except Exception as e:
+            logging.error(f"Error in chat endpoint: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/audio/<filename>", methods=["GET"])
+    def get_audio(filename):
+        try:
+            return send_file(os.path.join(tempfile.gettempdir(), filename))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 404
+    
+    if __name__ == "__main__":
+        app.run(host="0.0.0.0", port=5000)
+
+  requirements.txt: |
+    flask==2.0.1
+    requests==2.28.1
+    gunicorn==20.1.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: integration-service
+  namespace: inference
+  labels:
+    app: integration-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: integration-service
+  template:
+    metadata:
+      labels:
+        app: integration-service
+    spec:
+      containers:
+      - name: integration
+        image: python:3.9-slim
+        command: 
+        - /bin/bash
+        - -c
+        - "pip install -r /app/requirements.txt && python /app/app.py"
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: DEEPSEEK_URL
+          value: "http://deepseek-vllm:8000/v1/completions"
+        - name: KOKORO_URL
+          value: "http://kokoro-tts:8080/api/tts" 
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2G
+          requests:
+            cpu: "500m"
+            memory: 1G
+        volumeMounts:
+        - name: app-code
+          mountPath: /app
+      volumes:
+      - name: app-code
+        configMap:
+          name: integration-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: integration-service
+  namespace: inference
+spec:
+  selector:
+    app: integration-service
+  ports:
+  - port: 80
+    targetPort: 5000
+    name: http
+  type: ClusterIP 
