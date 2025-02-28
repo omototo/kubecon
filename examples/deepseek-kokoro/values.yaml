@@ -14,6 +14,11 @@ deepseekVllm:
       memory: 30G
       nvidia.com/gpu: "1"
   command: "vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --max-model-len 2048"
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Equal
+      value: present
+      effect: NoSchedule
   service:
     type: ClusterIP
     port: 8000
