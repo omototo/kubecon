@@ -127,7 +127,7 @@ spec:
         command: 
         - /bin/bash
         - -c
-        - "pip install -r /app/requirements.txt && python /app/app.py"
+        - "pip install werkzeug==2.0.3 && pip install -r /app/requirements.txt && python /app/app.py"
         ports:
         - containerPort: 5000
           name: http

@@ -19,11 +19,10 @@ ENV CUDA_LAUNCH_BLOCKING=1
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python packages
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Ensure we have the correct version of kokoro and misaki
-RUN pip3 install --no-cache-dir kokoro>=0.8.2 misaki[ja,zh]>=0.1.0
+# Install Python packages in the correct order
+RUN pip3 install --no-cache-dir werkzeug==2.0.3 && \
+    pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 install --no-cache-dir kokoro>=0.8.2 misaki[ja,zh]>=0.1.0
 
 # Copy the application code
 COPY app.py /app/
