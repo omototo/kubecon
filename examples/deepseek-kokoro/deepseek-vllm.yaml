@@ -1,52 +1,60 @@
+{{- if .Values.deepseekVllm.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deepseek-vllm
-  namespace: inference
+  namespace: {{ .Release.Namespace }}
   labels:
     app: deepseek-vllm
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.deepseekVllm.replicas }}
   selector:
     matchLabels:
       app: deepseek-vllm
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: deepseek-vllm
+        release: {{ .Release.Name }}
     spec:
       containers:
       - name: vllm
-        image: ghcr.io/vllm-project/vllm:latest
+        image: {{ .Values.deepseekVllm.image }}
         command: 
         - /bin/bash
         - -c
-        - "vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --max-model-len 2048"
+        - {{ .Values.deepseekVllm.command | quote }}
         ports:
         - containerPort: 8000
           name: http
         resources:
-          limits:
-            cpu: "32"
-            memory: 100G
-            nvidia.com/gpu: "1"
-          requests:
-            cpu: "16"
-            memory: 30G
-            nvidia.com/gpu: "1"
+          {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
       nodeSelector:
-        nvidia.com/gpu: "true"
+        karpenter.sh/nodepool: gpu-nodepool
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: deepseek-vllm
-  namespace: inference
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: deepseek-vllm
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
 spec:
+  type: {{ .Values.deepseekVllm.service.type }}
   selector:
     app: deepseek-vllm
+    release: {{ .Release.Name }}
   ports:
-  - port: 8000
+  - port: {{ .Values.deepseekVllm.service.port }}
     targetPort: 8000
     name: http
-  type: ClusterIP 
+{{- end }} 
