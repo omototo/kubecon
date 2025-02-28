@@ -32,8 +32,6 @@ spec:
           name: http
         resources:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
-      nodeSelector:
-        instanceType: gpu
       tolerations:
       - key: nvidia.com/gpu
         value: present
