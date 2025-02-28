@@ -17,6 +17,12 @@ deepseekVllm:
   service:
     type: ClusterIP
     port: 8000
+  nodeSelector:
+    karpenter.sh/nodepool: gpu-nodepool
+  tolerations:
+    - key: nvidia.com/gpu
+      value: present
+      effect: NoSchedule
 
 kokoroTts:
   enabled: true
