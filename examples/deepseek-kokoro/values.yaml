@@ -18,7 +18,7 @@ deepseekVllm:
     type: ClusterIP
     port: 8000
   nodeSelector:
-    karpenter.sh/nodepool: gpu-nodepool
+    instanceType: gpu
   tolerations:
     - key: nvidia.com/gpu
       value: present
