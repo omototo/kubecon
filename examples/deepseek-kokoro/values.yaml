@@ -17,10 +17,6 @@ deepseekVllm:
   service:
     type: ClusterIP
     port: 8000
-  tolerations:
-    - key: nvidia.com/gpu
-      value: present
-      effect: NoSchedule
 
 kokoroTts:
   enabled: true
