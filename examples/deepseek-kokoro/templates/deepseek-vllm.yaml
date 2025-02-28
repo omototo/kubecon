@@ -32,8 +32,6 @@ spec:
           name: http
         resources:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
-      nodeSelector:
-        nvidia.com/gpu: "true"
 ---
 apiVersion: v1
 kind: Service
