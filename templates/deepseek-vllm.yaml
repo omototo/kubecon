@@ -1,0 +1,54 @@
+{{- if .Values.deepseekVllm.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepseek-vllm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: deepseek-vllm
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.deepseekVllm.replicas }}
+  selector:
+    matchLabels:
+      app: deepseek-vllm
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: deepseek-vllm
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: vllm
+        image: {{ .Values.deepseekVllm.image }}
+        command: 
+        - /bin/bash
+        - -c
+        - {{ .Values.deepseekVllm.command | quote }}
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepseek-vllm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: deepseek-vllm
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+spec:
+  type: {{ .Values.deepseekVllm.service.type }}
+  selector:
+    app: deepseek-vllm
+    release: {{ .Release.Name }}
+  ports:
+  - port: {{ .Values.deepseekVllm.service.port }}
+    targetPort: 8000
+    name: http
+{{- end }} 

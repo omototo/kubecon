@@ -1,0 +1,29 @@
+Thank you for installing {{ .Chart.Name }} (version: {{ .Chart.Version }})!
+
+The DeepSeek-Kokoro integration has been deployed to your cluster.
+
+Components deployed:
+{{- if .Values.deepseekVllm.enabled }}
+- DeepSeek VLLM Service (using {{ .Values.deepseekVllm.resources.limits.nvidia.com/gpu }} GPU)
+{{- end }}
+{{- if .Values.kokoroTts.enabled }}
+- Kokoro TTS Service
+{{- end }}
+{{- if .Values.integration.enabled }}
+- Integration Service
+{{- end }}
+
+To interact with the integration service:
+
+1. Forward the service port to your local machine:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/integration-service 8888:{{ .Values.integration.service.port }}
+
+2. Access the API:
+   curl -X POST http://localhost:8888/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"input": "Tell me about machine learning"}'
+
+The response will include both the text response from DeepSeek and a URL to access the 
+generated audio file from Kokoro TTS.
+
+For more information, please refer to the README.md in the chart directory. 
