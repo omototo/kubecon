@@ -18,7 +18,7 @@ spec:
       containers:
       - name: tts
         # This image will be built by CodeBuild and pushed to ECR
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/kokoro-tts:latest
+        image: 240484791744.dkr.ecr.eu-central-1.amazonaws.com/kokoro-tts:latest
         env:
         - name: MODEL_ID
           value: "hexgrad/Kokoro-82M"
@@ -34,6 +34,11 @@ spec:
           requests:
             cpu: "2"
             memory: 4G
+      # Add tolerations for GPU nodes
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
 ---
 apiVersion: v1
 kind: Service
