@@ -17,8 +17,6 @@ deepseekVllm:
   service:
     type: ClusterIP
     port: 8000
-  nodeSelector:
-    instanceType: gpu
   tolerations:
     - key: nvidia.com/gpu
       value: present
