@@ -33,7 +33,7 @@ spec:
         resources:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
       nodeSelector:
-        karpenter.sh/nodepool: gpu-nodepool
+        instanceType: gpu
       tolerations:
       - key: nvidia.com/gpu
         value: present
