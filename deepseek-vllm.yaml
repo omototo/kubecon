@@ -34,8 +34,7 @@ spec:
           {{- toYaml .Values.deepseekVllm.resources | nindent 10 }}
       tolerations:
       - key: nvidia.com/gpu
-        operator: Equal
-        value: present
+        operator: Exists
         effect: NoSchedule
 ---
 apiVersion: v1
