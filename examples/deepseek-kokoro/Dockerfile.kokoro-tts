@@ -2,13 +2,12 @@ FROM nvidia/cuda:12.0.1-base-ubuntu22.04
 
 WORKDIR /app
 
-# Install dependencies
+# Install espeak-ng, ffmpeg and necessary dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libsndfile1 \
+    espeak-ng \
+    ffmpeg \
     python3 \
     python3-pip \
-    espeak-ng \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -16,19 +15,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV CUDA_LAUNCH_BLOCKING=1
 
-# Copy requirements file
+# Copy the requirements file into the container
 COPY requirements.txt .
 
-# Install Python packages in the correct order
-RUN pip3 install --no-cache-dir werkzeug==2.0.3 && \
-    pip3 install --no-cache-dir -r requirements.txt && \
-    pip3 install --no-cache-dir kokoro>=0.8.2 misaki[ja,zh]>=0.1.0
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the application code
-COPY app.py /app/
+COPY app.py .
 
-# Expose the port
+# Expose the port that the app runs on
 EXPOSE 8080
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"] 
+# Run the FastAPI application using Uvicorn with a single worker
+CMD ["python3", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"] 

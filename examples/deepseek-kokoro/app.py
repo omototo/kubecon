@@ -1,12 +1,14 @@
 import os
 import io
 import base64
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
 import torch
 import torchaudio
 from kokoro import Kokoro, KPipeline
+from pydantic import BaseModel
 
-app = Flask(__name__)
+app = FastAPI()
 
 # Get the model ID from environment variable or use default
 MODEL_ID = os.environ.get("MODEL_ID", "hexgrad/Kokoro-82M")
@@ -19,8 +21,13 @@ USE_GPU = torch.cuda.is_available()
 model = None
 pipeline = None
 
-@app.before_first_request
-def load_model():
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "af_heart"
+    speed: float = 1.0
+
+@app.on_event("startup")
+async def load_model():
     global model, pipeline
     
     device = "cuda" if USE_GPU else "cpu"
@@ -39,34 +46,23 @@ def load_model():
             model = model.to("cuda")
         print(f"Model loaded successfully on {device}!")
 
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({
+@app.get('/health')
+async def health():
+    return {
         "status": "healthy",
         "model_id": MODEL_ID,
         "lang_code": LANG_CODE,
         "gpu_available": USE_GPU
-    })
+    }
 
-@app.route('/tts', methods=['POST'])
-def text_to_speech():
+@app.post('/api/tts')
+async def text_to_speech(request: TTSRequest):
     try:
-        data = request.json
-        if not data or 'text' not in data:
-            return jsonify({"error": "Missing 'text' field in request"}), 400
-        
-        text = data['text']
-        
-        # Optional parameters
-        speaker_id = data.get('speaker_id', 0)
-        speed = float(data.get('speed', 1.0))
-        voice = data.get('voice', 'af_heart')  # Default voice
-        
         # Generate speech
         if pipeline is not None:
             # Use pipeline approach
             audio_segments = []
-            for _, _, audio in pipeline(text, voice=voice, speed=speed, split_pattern=r'\n+'):
+            for _, _, audio in pipeline(request.text, voice=request.voice, speed=request.speed, split_pattern=r'\n+'):
                 audio_segments.append(audio)
             
             # Concatenate audio segments if multiple
@@ -78,9 +74,9 @@ def text_to_speech():
             # Use direct model approach
             with torch.no_grad():
                 audio = model.generate(
-                    text=text,
-                    speaker_id=speaker_id,
-                    speed=speed
+                    text=request.text,
+                    speaker_id=0,
+                    speed=request.speed
                 )
         
         # Convert to WAV format
@@ -88,22 +84,15 @@ def text_to_speech():
         torchaudio.save(buffer, audio.unsqueeze(0), 24000, format="wav")
         buffer.seek(0)
         
-        # Encode as base64
-        audio_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-        
-        return jsonify({
-            "audio": audio_base64,
-            "format": "wav",
-            "sample_rate": 24000
-        })
+        return StreamingResponse(buffer, media_type="audio/wav")
     
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.route('/voices', methods=['GET'])
-def list_voices():
+@app.get('/api/voices')
+async def list_voices():
     # Return a list of available voices
     voices = [
         {"id": "af_heart", "name": "American Female Heart", "language": "English (US)"},
@@ -111,7 +100,7 @@ def list_voices():
         {"id": "bf_sky", "name": "British Female Sky", "language": "English (UK)"},
         {"id": "bm_nova", "name": "British Male Nova", "language": "English (UK)"}
     ]
-    return jsonify({"voices": voices})
+    return {"voices": voices}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080) 
